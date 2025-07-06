@@ -237,4 +237,85 @@ namespace gocxx::errors {
         return std::make_shared<joinError>(std::move(filtered));
     }
 
+
+    /**
+     * @brief Represents an error that was caused by another error.
+     *
+     * Similar to Go's '%w' wrapping, but preserves the original error and its cause separately.
+     */
+    class causeError : public Error {
+        std::shared_ptr<Error> outer_;
+        std::shared_ptr<Error> cause_;
+
+    public:
+        /**
+         * @brief Constructs a causeError from an outer error and its cause.
+         * @param outer The outer/main error.
+         * @param cause The underlying cause of the outer error.
+         */
+        causeError(std::shared_ptr<Error> outer, std::shared_ptr<Error> cause) noexcept
+            : outer_(std::move(outer)), cause_(std::move(cause)) {
+        }
+
+        /**
+         * @brief Returns the error message of the outer error.
+         * @return std::string The outer error's message.
+         */
+        std::string error() const noexcept override {
+            return outer_ ? outer_->error() : "unknown error";
+        }
+
+        /**
+         * @brief Unwraps the inner cause of this error.
+         * @return std::shared_ptr<Error> The cause of the error, if any.
+         */
+        std::shared_ptr<Error> Unwrap() const noexcept override {
+            return cause_;
+        }
+
+        /**
+         * @brief Compares two causeErrors for equality.
+         * @param other Another error to compare against.
+         * @return true If the outer errors are equal.
+         */
+        bool IsEqualTo(const std::shared_ptr<Error>& other) const noexcept override {
+            if (auto ce = std::dynamic_pointer_cast<causeError>(other)) {
+                return outer_ && ce->outer_ && outer_->IsEqualTo(ce->outer_);
+            }
+            return outer_ && outer_->IsEqualTo(other);
+        }
+    };
+	/**
+	 * @brief Wraps an error with a cause.
+	 *
+	 * @param outer The outer error message.
+	 * @param cause The underlying cause of the error.
+	 * @return std::shared_ptr<Error> A new causeError wrapping the outer and cause errors.
+	 */
+	[[nodiscard]] inline std::shared_ptr<Error> Cause(const std::string& outer, const std::shared_ptr<Error>& cause) {
+		return std::make_shared<causeError>(New(outer), cause);
+	}
+
+	/**
+	 * @brief Wraps an outer error with a cause error.
+	 *
+	 * @param outer The outer error.
+	 * @param cause The underlying cause of the error.
+	 * @return std::shared_ptr<Error> A new causeError wrapping the outer and cause errors.
+	 */
+    [[nodiscard]] inline std::shared_ptr<Error> Cause(const std::shared_ptr<Error>& outer, const std::shared_ptr<Error>& cause) {
+        return std::make_shared<causeError>(outer, cause);
+    }
+
+	/**
+	 * @brief Unwraps the cause of an error, if it exists.
+	 *
+	 * @param err The error to unwrap.
+	 * @return std::shared_ptr<Error> The cause of the error, or nullptr if not present.
+	 */
+	[[nodiscard]] inline std::shared_ptr<Error> Cause(const std::shared_ptr<Error>& err) {
+        return err ? err->Unwrap() : nullptr;
+    }
+
+
 } // namespace gocxx::errors
