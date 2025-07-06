@@ -1,0 +1,24 @@
+/**
+ * @mainpage gocxx::errors
+ * 
+ * @section intro Introduction
+ * 
+ * The `gocxx::errors` library provides a Go-like error handling interface in C++.
+ * It supports:
+ * 
+ * - Wrapping errors
+ * - Unwrapping nested errors
+ * - Type casting with `As`
+ * - Comparing with `Is`
+ * - Joining multiple errors
+ * 
+ * @section usage Usage
+ * 
+ * ```cpp
+ * using namespace gocxx::errors;
+ * auto err = New("simple error");
+ * auto wrapped = Wrap("context", err);
+ * ```
+ * 
+ * @see gocxx::errors::Error
+ */

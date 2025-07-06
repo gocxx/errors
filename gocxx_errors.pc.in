@@ -1,0 +1,8 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+exec_prefix=${prefix}
+includedir=${prefix}/include
+
+Name: gocxx-errors
+Description: Go-style error handling for C++ (shared_ptr<Error>, Wrap, Is, As, Join)
+Version: @PROJECT_VERSION@
+Cflags: -I${includedir}
