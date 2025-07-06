@@ -5,9 +5,12 @@ on:
     tags:
       - 'v*' 
 
+permissions:
+  contents: write
+  
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  
 
     steps:
       - name: Checkout source
