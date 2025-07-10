@@ -17,7 +17,7 @@ namespace gocxx::errors {
      *
      * All custom error types should derive from this base class.
      */
-    struct Error {
+    struct Error : public std::exception {
         /**
          * @brief Returns the error message as a string.
          * @return std::string The error message.
@@ -29,6 +29,10 @@ namespace gocxx::errors {
          * @return std::shared_ptr<Error> The wrapped error, or nullptr.
          */
         virtual std::shared_ptr<Error> Unwrap() const noexcept { return nullptr; }
+
+        virtual const char* what() const noexcept override {
+            return nullptr;
+        }
 
         /**
          * @brief Compares the current error with another.
@@ -59,6 +63,10 @@ namespace gocxx::errors {
             : msg(std::move(message)) {
         }
 
+        const char* what() const noexcept override {
+            return msg.c_str();
+        }
+
         /**
          * @brief Returns the error message.
          * @return std::string The stored message.
@@ -84,6 +92,7 @@ namespace gocxx::errors {
     class wrappedError : public Error {
         std::string msg;
         std::shared_ptr<Error> inner;
+        mutable std::string combined;
 
     public:
         /**
@@ -95,11 +104,21 @@ namespace gocxx::errors {
             : msg(std::move(message)), inner(std::move(err)) {
         }
 
+        const char* what() const noexcept override {
+            combined = error();  
+            return combined.c_str();
+        }
+
         /**
          * @brief Returns the outer error message.
          * @return std::string The context message.
          */
-        std::string error() const noexcept override { return msg; }
+        std::string error() const noexcept override {
+            if (inner) {
+                combined = (msg + ": " + inner->error()).c_str();
+            }
+            return combined.c_str();
+        }
 
         /**
          * @brief Returns the wrapped inner error.
@@ -179,7 +198,7 @@ namespace gocxx::errors {
      */
     class joinError : public Error {
         std::vector<std::shared_ptr<Error>> errs;
-        std::string msg;
+        std::string msg;    
 
     public:
         /**
@@ -246,6 +265,7 @@ namespace gocxx::errors {
     class causeError : public Error {
         std::shared_ptr<Error> outer_;
         std::shared_ptr<Error> cause_;
+		mutable std::string combined_;
 
     public:
         /**
@@ -262,8 +282,20 @@ namespace gocxx::errors {
          * @return std::string The outer error's message.
          */
         std::string error() const noexcept override {
-            return outer_ ? outer_->error() : "unknown error";
+			if (outer_) {
+				combined_ = outer_->error();
+				if (cause_) {
+					combined_ += ": " + cause_->error();
+				}
+				return combined_;
+			}
+            return "unknown error";
         }
+
+		const char* what() const noexcept override {
+            combined_ = error();
+            return combined_.c_str();
+		}
 
         /**
          * @brief Unwraps the inner cause of this error.
